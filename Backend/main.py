@@ -33,7 +33,7 @@ def signup(user: schemas.UserCreate, db: DbDependancy):
 
     new_user = models.User(
         email=user.email,
-        hashed_password=auth.hash_password(user.password),
+        password_hash=auth.hash_password(user.password),
         first_name= user.first_name,
         last_name= user.last_name,
     )
@@ -66,7 +66,7 @@ def login(
 
     if not auth.verify_password(
         form_data.password,
-        user.hashed_password,
+        user.password_hash,
     ):
         raise HTTPException(401, "Invalid credentials")
 
