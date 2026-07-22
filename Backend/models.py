@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Enum, JSON
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Enum, JSON, UniqueConstraint
 from sqlalchemy.sql import func
 import enum
 from database import Base
@@ -88,6 +88,14 @@ class Family(Base):
 class FamilyRecipe(Base):
     __tablename__ = "family_recipe"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "family_id",
+            "recipe_id",
+            name="unique_family_recipe"
+        ),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
 
     family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
@@ -100,7 +108,15 @@ class FamilyRecipe(Base):
 # This is the schema for telling which families users are in and their status/Role in that family
 
 class FamilyMember(Base):
-    __tablename__ = "faimly_member"
+    __tablename__ = "faimly_member"    
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "family_id",
+            name="unique_family_member"
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     
@@ -115,6 +131,14 @@ class FamilyMember(Base):
 
 class FavoriteRecipe(Base):
     __tablename__ = "favorite_recipe"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "recipe_id",
+            name="unique_favorite_recipe"
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
         
