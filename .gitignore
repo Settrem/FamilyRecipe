@@ -1,0 +1,11 @@
+# .env files — never commit these
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# ignore server setup folders
+env/
+__pycache__/
