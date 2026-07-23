@@ -44,7 +44,7 @@ def signup(user: schemas.UserCreate, db: DbDependancy):
     return {"message": "User created"}
 
 
-@app.post("/token")
+@app.post("/token", response_model=schemas.Token)
 def login(
     form_data: Annotated[
         OAuth2PasswordRequestForm,
