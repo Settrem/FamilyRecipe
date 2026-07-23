@@ -57,9 +57,11 @@ class Recipe(Base):
 
     title = Column(String(50))
     description = Column(Text)
-    instructions = Column(Text)
+    cooking_time = Column(Integer)
+    portion_amount = Column(Integer)
+
     ingredients = Column(JSON)
-    image_url = Column(Text)
+    recipe_instructions = Column(JSON)
 
     status = Column(Enum(RecipeStatus))
 

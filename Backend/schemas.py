@@ -18,7 +18,7 @@ class UserRead(BaseModel):
         "from_attributes": True
     }
 
-class Recipe(BaseModel):
+class CreateRecipe(BaseModel):
     id: int
     recipe_name: str 
     creator_id: int

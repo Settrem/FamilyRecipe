@@ -9,3 +9,6 @@
 # ignore server setup folders
 env/
 __pycache__/
+
+# ignore excel sheets
+*.xlsx
