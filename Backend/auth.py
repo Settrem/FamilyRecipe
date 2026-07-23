@@ -5,15 +5,12 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
 import hashlib
+from .env import SECRET_KEY, ALGORITHM ,ACCESS_TOKEN_EXPIRE_MINUTES
 
 # ANVÄND BCVRYPT ISTÄLLET FÖR PASSLIB
 
 
 #Läs mer på https://fastapi.tiangolo.com/tutorial/security/first-steps/
-
-SECRET_KEY = "9a27cc0063ccba4024895e0387364e934a4f59097f7688bd97ee10dc7c6408a3"
-ALGORITHM = "HS256" #Hashing algortihtm
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def normalize_password(password: str) -> bytes:
     if len(password.encode("utf-8")) > 72:
