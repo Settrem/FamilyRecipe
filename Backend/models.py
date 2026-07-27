@@ -155,6 +155,8 @@ class FavoriteRecipe(Base):
 class RequestToJoinFamily(Base):
     __tablename__ = "request_to_join_family"
 
+    id = Column(Integer, primary_key=True)
+
     user_id = Column(Integer, ForeignKey("user.id"), primary_key=True)
     family_id = Column(Integer, ForeignKey("family.id"), primary_key=True)
     requested_by = Column(Integer, ForeignKey("user.id"), primary_key=True)
