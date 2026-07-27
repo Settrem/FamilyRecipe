@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 import models
 from database import DbDependancy
+import schemas
+from models import RecipeStatus, FamilyMemberRole
 
 def get_recipes_of_user(
     user_id: int,
@@ -22,4 +24,123 @@ def get_recipes_of_user(
         )
 
     return recipes
-    
+
+
+#This function returns the recipe of the given id
+def get_recipe_by_id(
+        recipe_id: int,
+        db: DbDependancy,
+):
+    recipe = (
+        db.query(models.Recipe)
+        .filter(models.Recipe.id == recipe_id)
+        .first()
+    )
+
+    if recipe is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recipe not found."
+        )
+    return recipe
+
+# This function is used to add a new recipe to the database
+# The parameters are the user id of the recipe creator, the recipe, and the status os the recipe which fillows the RecipeStatus type
+def create_recipe(
+    user_id: int,
+    recipe: schemas.RecipeCreate,
+    recipe_status: RecipeStatus,
+    db: DbDependancy,
+):
+    new_recipe = models.Recipe(
+        author_id=user_id,
+        title=recipe.title,
+        description=recipe.description,
+        cooking_time=recipe.cooking_time,
+        portion_amount=recipe.portion_amount,
+        ingredients=[ingredient.model_dump() for ingredient in recipe.ingredients],
+        recipe_instructions=[
+            step.model_dump() for step in recipe.recipe_instructions
+        ],
+        status=recipe_status,
+    )
+
+    db.add(new_recipe)
+    db.commit()
+    db.refresh(new_recipe)
+
+    return new_recipe
+
+#This function updates the recipe of the given recipe id, the user_id makes sure users can only edit their own recipe
+def update_recipe(
+    recipe_id: int,
+    user_id: int,
+    recipe_update: schemas.RecipeUpdate,
+    db: DbDependancy,
+):
+    #Query for the recipe
+    recipe = (
+        db.query(models.Recipe)
+        .filter(
+            models.Recipe.id == recipe_id,
+            models.Recipe.author_id == user_id,
+        )
+        .first()
+    )
+
+    if recipe is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recipe not found."
+        )
+
+    # Get only fields that were provided using exclude_unset=true
+    update_data = recipe_update.model_dump(exclude_unset=True)
+
+    if "ingredients" in update_data:
+        update_data["ingredients"] = [
+            ingredient.model_dump()
+            for ingredient in recipe_update.ingredients
+        ]
+
+    if "recipe_instructions" in update_data:
+        update_data["recipe_instructions"] = [
+            step.model_dump()
+            for step in recipe_update.recipe_instructions
+        ]
+
+    for field, value in update_data.items():
+        setattr(recipe, field, value)
+
+    db.commit()
+    db.refresh(recipe)
+
+    return recipe
+
+#This function verifies the user and deletes the given recipe
+def delete_recipe(
+    recipe_id: int,
+    user_id: int,
+    db: DbDependancy, 
+):
+    #Query for the recipe
+    recipe = (
+        db.query(models.Recipe)
+        .filter(
+            models.Recipe.id == recipe_id,
+            models.Recipe.author_id == user_id,
+        )
+        .first()
+    )
+
+    if recipe is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recipe not found."
+        )
+
+    db.delete(recipe)
+    db.commit()
+
+    return {"message": "Recipe deleted successfully."}
+
