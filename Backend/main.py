@@ -10,12 +10,13 @@ from database import Base, engine, SessionLocal, DbDependancy
 import models
 import auth
 import schemas
-from db_utils import get_recipes_of_user
+import Backend.db_utils.recipe_utils as recipe_utils
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+#FastAPI automatically returns a 422 Unprocessable Entity if parameters are wrong types
 @app.post("/signup")
 def signup(user: schemas.UserCreate, db: DbDependancy):
 
@@ -28,7 +29,7 @@ def signup(user: schemas.UserCreate, db: DbDependancy):
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="Username already exists",
+            detail="Email already exists",
         )
 
     new_user = models.User(
@@ -135,4 +136,4 @@ def me(
 async def get_users_receipe(
     current_user:  Annotated[models.User, Depends(get_current_user)],
 ): 
-    return get_recipes_of_user(current_user.id)
+    return recipe_utils.get_recipes_of_user(current_user.id)

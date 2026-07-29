@@ -80,6 +80,12 @@ class RecipeRead(BaseModel):
         "from_attributes": True
     }
 
+class RecipePreview(BaseModel):
+    id: int
+    title: str
+    cooking_time: int
+    step_count: int
+    ingridients: int
 
 # ----
 # Family Schemas

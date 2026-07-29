@@ -25,6 +25,27 @@ def get_recipes_of_user(
 
     return recipes
 
+def preview_recipes_of_user(
+    user_id: int,
+    db: DbDependancy,
+) -> list[schemas.RecipePreview]:
+    recipes = (
+        db.query(models.Recipe)
+        .filter(models.Recipe.author_id == user_id)
+        .all()
+    )
+
+    return [
+        schemas.RecipePreview(
+            id=recipe.id,
+            title=recipe.title,
+            cooking_time=recipe.cooking_time,
+            step_count=len(recipe.recipe_instructions or []),
+            ingridients=len(recipe.ingredients or []),
+        )
+        for recipe in recipes
+    ]
+
 
 #This function returns the recipe of the given id
 def get_recipe_by_id(
