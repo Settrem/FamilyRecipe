@@ -19,6 +19,7 @@ class RecipeStatus(enum.Enum):
 # This is datatype that sets the role of a family member and how much authority they have in the family
 
 class FamilyMemberRole(enum.Enum):
+    Creator = "Creator"
     Administrator = "Administrator"
     Editor = "Editor"
     Visitor = "Visitor"
@@ -110,7 +111,7 @@ class FamilyRecipe(Base):
 # This is the schema for telling which families users are in and their status/Role in that family
 
 class FamilyMember(Base):
-    __tablename__ = "faimly_member"    
+    __tablename__ = "family_member"    
 
     __table_args__ = (
         UniqueConstraint(

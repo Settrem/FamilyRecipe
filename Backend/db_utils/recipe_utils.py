@@ -7,6 +7,7 @@ from database import DbDependancy
 import schemas
 from models import RecipeStatus, FamilyMemberRole
 
+#This function returns all the recipes of a user in their entirety
 def get_recipes_of_user(
     user_id: int,
     db: DbDependancy,
@@ -25,6 +26,7 @@ def get_recipes_of_user(
 
     return recipes
 
+#This function returns all the recipes of a user in a preview format so we dont have to send as much data to online users
 def preview_recipes_of_user(
     user_id: int,
     db: DbDependancy,
