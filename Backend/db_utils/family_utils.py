@@ -31,6 +31,27 @@ def create_family(
 
     return new_family
 
+def read_family_member(
+    family_member_id: int,
+    db: DbDependancy,
+):
+    #Query for the family member
+    family_member = (
+        db.query(models.FamilyMember)
+        .filter(
+            models.FamilyMember.id == family_member_id,
+        ).first()
+    )
+
+    if family_member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Family member not found."
+        )
+    
+    return family_member
+
+#Checks if a user is a member of a family
 def authenticate_family_member(
     user_id: int,
     family_id: int, 
@@ -137,4 +158,92 @@ def add_member_to_family(
     db.add(new_family_member)
     db.commit()
 
+# This function lets us change the role of members in the family
+# (cannot be given the role of Creator or Removed)
+def change_family_member_role(
+    family_member_id: int,
+    new_family_member_role: models.FamilyMemberRole,
+    db: DbDependancy,
+):
+    if new_family_member_role == models.FamilyMemberRole.Creator:
+        raise HTTPException(
+            status_code=405,
+            detail="Not allowed to assign the Creator role."
+        )
+
+    family_member = (
+        db.query(models.FamilyMember)
+        .filter(models.FamilyMember.id == family_member_id)
+        .first()
+    )
+
+    if family_member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Family member not found."
+        )
+
+    family_member.family_member_role = new_family_member_role
+
+    db.commit()
+    db.refresh(family_member)
+
+    return family_member
+
+
+def delete_family_member(
+    family_member_id_of_action: int,
+    family_member_id_to_delete: int,
+    db: DbDependancy, 
+):
+
+    authenticated_member = read_family_member(family_member_id_of_action, db)
+    if authenticated_member.family_member_role not in (
+        models.FamilyMemberRole.Administrator,
+        models.FamilyMemberRole.Creator,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="User does not have permission to delete this user."
+        )
     
+    #Query for the recipe
+    family_member_to_delete = (
+        db.query(models.FamilyMember)
+        .filter(
+            models.FamilyMember.id == family_member_id_to_delete,
+        )
+        .first()
+    )
+
+    if family_member_to_delete is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Family member not found."
+        )
+    
+    if family_member_to_delete.family_member_role == models.FamilyMemberRole.Creator:
+        raise HTTPException(
+            status_code=405,
+            detail="Not allowed to delete the Creator."
+        )
+
+    if authenticated_member.family_id != family_member_to_delete.family_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot modify members of another family."
+        )
+
+    if authenticated_member.id == family_member_to_delete.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot remove yourself."
+        )
+
+    db.delete(family_member_to_delete)
+    db.commit()
+
+    return {"message": "Family Member removed successfully."}
+
+
+

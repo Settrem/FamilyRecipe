@@ -128,6 +128,8 @@ class FamilyMember(Base):
     family_member_role = Column(Enum(FamilyMemberRole))
 
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 
 # -- Family Member-- 
 # This is the schema for allowing which famelies can see your recipies and not
