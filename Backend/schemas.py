@@ -65,6 +65,7 @@ class RecipeUpdate(BaseModel):
 class RecipeRead(BaseModel):
     id: int
     author_id: int
+    author_name: str
 
     title: str
     description: str
@@ -86,6 +87,18 @@ class RecipePreview(BaseModel):
     cooking_time: int
     step_count: int
     ingridients: int
+
+class RecipePreviewInFamily(BaseModel):
+    id: int
+    title: str
+    cooking_time: int
+    step_count: int
+    ingredient_count: int
+    recipe_creator: str
+
+    model_config = {
+        "from_attributes": True
+    }
 
 # ----
 # Family Schemas

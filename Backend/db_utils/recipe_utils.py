@@ -26,6 +26,29 @@ def get_recipes_of_user(
 
     return recipes
 
+def authenticate_recipe_ownership(
+    current_user_id: int,
+    recipe_id: int,
+    db: DbDependancy,
+):
+    # Check recipe ownership
+    recipe = (
+        db.query(models.Recipe)
+        .filter(
+            models.Recipe.id == recipe_id,
+            models.Recipe.author_id == current_user_id,
+        )
+        .first()
+    )
+
+    if recipe is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Recipe not found or you do not own this recipe."
+        )    
+
+    return recipe
+
 #This function returns all the recipes of a user in a preview format so we dont have to send as much data to online users
 def preview_recipes_of_user(
     user_id: int,
@@ -47,7 +70,6 @@ def preview_recipes_of_user(
         )
         for recipe in recipes
     ]
-
 
 #This function returns the recipe of the given id
 def get_recipe_by_id(

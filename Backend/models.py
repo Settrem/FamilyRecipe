@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Enum, JSON, UniqueConstraint
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, relationship
 import enum
 from database import Base
 
@@ -44,6 +44,10 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+recipes = relationship(
+    "Recipe",
+    back_populates="author"
+)
 
 # -- Recipe -- 
 # This is the schema for the Recipes which uses JSON format to store recipes ingridients,
@@ -68,6 +72,11 @@ class Recipe(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    author = relationship(
+        "User",
+        back_populates="recipes"
+    )
 
 
 # -- Family -- 
@@ -101,8 +110,8 @@ class FamilyRecipe(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
-    recipe_id = Column(Integer, ForeignKey("recipe.id"), nullable=False)
+    family_id = Column(Integer, ForeignKey("family.id", ondelete="CASCADE"), nullable=False)
+    recipe_id = Column(Integer, ForeignKey("recipe.id", ondelete="CASCADE"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -123,8 +132,8 @@ class FamilyMember(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    family_id = Column(Integer, ForeignKey("family.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    family_id = Column(Integer, ForeignKey("family.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     family_member_role = Column(Enum(FamilyMemberRole))
 
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -147,7 +156,7 @@ class FavoriteRecipe(Base):
 
     id = Column(Integer, primary_key=True, index=True)
         
-    recipe_id = Column(Integer, ForeignKey("recipe.id"), nullable=False)
+    recipe_id = Column(Integer, ForeignKey("recipe.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
 
     saved_at = Column(DateTime(timezone=True), server_default=func.now())
