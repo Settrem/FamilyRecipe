@@ -5,6 +5,57 @@ from fastapi import HTTPException
 import models
 from database import DbDependancy
 import schemas
+from user_utils import *
+
+####
+# Private Functions
+####
+
+def _read_family(
+    family_id: int,
+    db: DbDependancy,
+):
+    #Query for the family
+    family = (
+        db.query(models.Family)
+        .filter(
+            models.Family.id == family_id,
+        )
+        .first()
+    )
+
+    if family is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Family not found."
+        )
+
+    return family
+
+def _read_family_member(
+    family_member_id: int,
+    db: DbDependancy,
+):
+    #Query for the family member
+    family_member = (
+        db.query(models.FamilyMember)
+        .filter(
+            models.FamilyMember.id == family_member_id,
+        ).first()
+    )
+
+    if family_member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Family member not found."
+        )
+
+    return family_member
+
+
+####
+# CRUD Functions
+####
 
 def create_family(
     user_id: int,
@@ -31,26 +82,6 @@ def create_family(
 
     return new_family
 
-def read_family_member(
-    family_member_id: int,
-    db: DbDependancy,
-):
-    #Query for the family member
-    family_member = (
-        db.query(models.FamilyMember)
-        .filter(
-            models.FamilyMember.id == family_member_id,
-        ).first()
-    )
-
-    if family_member is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Family member not found."
-        )
-    
-    return family_member
-
 #Checks if a user is a member of a family
 def authenticate_family_member(
     user_id: int,
@@ -58,20 +89,11 @@ def authenticate_family_member(
     db: DbDependancy,
 ) -> models.FamilyMember:
 
-    #Query for the family
-    family = (
-        db.query(models.Family)
-        .filter(
-            models.Family.id == family_id,
-        )
-        .first()
-    )
+    #Query for the user
+    user = read_user(user_id, db)
 
-    if family is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Family not found."
-        )
+    #Query for the family
+    family = _read_family(family_id, db)
 
     #Query for the family member
     family_member = (
@@ -85,18 +107,74 @@ def authenticate_family_member(
     if family_member is None:
         raise HTTPException(
             status_code=404,
-            detail="Family member not found."
+            detail="User is not member of Family."
         )
     
     return family_member
 
+def read_family_member(
+    current_user_id: int,
+    family_member_id: int,
+    db: DbDependancy,
+):
+    #Query for the family member
+    family_member = _read_family_member(family_member_id, db)
+
+    # Verify that the current user belongs to the same family
+    authenticate_family_member(
+        current_user_id,
+        family_member.family_id,
+        db,
+    )
+    
+    return family_member
+
+def read_all_family_members(
+    current_user_id: int,
+    family_id: int,
+    db: DbDependancy,
+) -> list[schemas.FamilyMemberRead]:
+
+    # Verify that the current user belongs to the family
+    authenticate_family_member(
+        current_user_id,
+        family_id,
+        db,
+    )
+
+    # Query all family members
+    family_members = (
+        db.query(models.FamilyMember)
+        .filter(models.FamilyMember.family_id == family_id)
+        .all()
+    )
+
+    return family_members
+
 #This function lets us add new members to the family (cannot be given role of creator)
 def add_member_to_family(
-        user_id: int,
+        current_user_id: int,
+        user_to_add_id: int,
         family_id: int,
         new_family_member_role: models.FamilyMemberRole,
         db: DbDependancy,
 ):
+
+    # Verify that the current user belongs to the same family
+    current_user = authenticate_family_member(
+        current_user_id,
+        family_id,
+        db,
+    )
+    
+    if current_user.family_member_role not in (
+        models.FamilyMemberRole.Administrator,
+        models.FamilyMemberRole.Creator,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="User does not have permission to add user to family."
+        )
 
     if new_family_member_role == models.FamilyMemberRole.Creator:
         raise HTTPException(
@@ -105,39 +183,15 @@ def add_member_to_family(
         )
 
     #Query for the family and user to make sure they exist
-    family = (
-        db.query(models.Family)
-        .filter(
-            models.Family.id == family_id,
-        )
-        .first()
-    )
+    family = _read_family(family_id, db)
 
-    if family is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Family not found."
-        )
-
-    user = (
-        db.query(models.User)
-        .filter(
-            models.User.id == user_id,
-        )
-        .first()
-    )
-
-    if user is None:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found."
-        )
+    user_to_add = read_user(user_to_add_id, db)
 
     #Query if user already is in the family
     user_in_family = (
         db.query(models.FamilyMember)
         .filter(
-            models.FamilyMember.user_id == user_id,
+            models.FamilyMember.user_id == user_to_add.id,
             models.FamilyMember.family_id == family_id,
         )
         .first()
@@ -151,7 +205,7 @@ def add_member_to_family(
 
     new_family_member = models.FamilyMember(
         family_id=family.id,
-        user_id=user_id,
+        user_id=user_to_add.id,
         family_member_role= new_family_member_role,
     )
 
@@ -161,6 +215,7 @@ def add_member_to_family(
 # This function lets us change the role of members in the family
 # (cannot be given the role of Creator or Removed)
 def change_family_member_role(
+    current_user_id: int,
     family_member_id: int,
     new_family_member_role: models.FamilyMemberRole,
     db: DbDependancy,
@@ -171,16 +226,23 @@ def change_family_member_role(
             detail="Not allowed to assign the Creator role."
         )
 
-    family_member = (
-        db.query(models.FamilyMember)
-        .filter(models.FamilyMember.id == family_member_id)
-        .first()
-    )
+    #Read family member
+    family_member = _read_family_member(family_member_id, db)
 
-    if family_member is None:
+    # Verify that the current user belongs to the same family
+    current_user = authenticate_family_member(
+        current_user_id,
+        family_id,
+        db,
+    )
+    
+    if current_user.family_member_role not in (
+        models.FamilyMemberRole.Administrator,
+        models.FamilyMemberRole.Creator,
+    ):
         raise HTTPException(
-            status_code=404,
-            detail="Family member not found."
+            status_code=403,
+            detail="User does not have permission to add user to family."
         )
 
     family_member.family_member_role = new_family_member_role
@@ -192,35 +254,13 @@ def change_family_member_role(
 
 
 def delete_family_member(
-    family_member_id_of_action: int,
+    current_user_id: int,
     family_member_id_to_delete: int,
     db: DbDependancy, 
 ):
-
-    authenticated_member = read_family_member(family_member_id_of_action, db)
-    if authenticated_member.family_member_role not in (
-        models.FamilyMemberRole.Administrator,
-        models.FamilyMemberRole.Creator,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="User does not have permission to delete this user."
-        )
     
-    #Query for the recipe
-    family_member_to_delete = (
-        db.query(models.FamilyMember)
-        .filter(
-            models.FamilyMember.id == family_member_id_to_delete,
-        )
-        .first()
-    )
-
-    if family_member_to_delete is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Family member not found."
-        )
+    #Query for the family member to be deleted
+    family_member_to_delete = _read_family_member(family_member_id_to_delete, db)
     
     if family_member_to_delete.family_member_role == models.FamilyMemberRole.Creator:
         raise HTTPException(
@@ -228,13 +268,23 @@ def delete_family_member(
             detail="Not allowed to delete the Creator."
         )
 
-    if authenticated_member.family_id != family_member_to_delete.family_id:
+    # Verify that the current user belongs to the same family
+    current_user = authenticate_family_member(
+        current_user_id,
+        family_member_id_to_delete,
+        db,
+    )
+    
+    if current_user.family_member_role not in (
+        models.FamilyMemberRole.Administrator,
+        models.FamilyMemberRole.Creator,
+    ):
         raise HTTPException(
             status_code=403,
-            detail="Cannot modify members of another family."
+            detail="User does not have permission to add user to family."
         )
-
-    if authenticated_member.id == family_member_to_delete.id:
+    
+    if current_user.id == family_member_to_delete.user_id:
         raise HTTPException(
             status_code=403,
             detail="You cannot remove yourself."
@@ -244,6 +294,65 @@ def delete_family_member(
     db.commit()
 
     return {"message": "Family Member removed successfully."}
+
+
+def exit_family(
+    current_user_id: int,
+    family_id: int,
+    db: DbDependancy,
+):
+
+    family_member = authenticate_family_member(
+        current_user_id,
+        family_id,
+        db,
+    )
+
+    # Creator cannot leave if other members still exist
+    if family_member.family_member_role == models.FamilyMemberRole.Creator:
+            raise HTTPException(
+                status_code=400,
+                detail="You cannot quit as creator."
+            )
+
+    db.delete(family_member)
+    db.commit()
+
+    return {"message": "User exited family successfully."}
+
+#This function lets you delete the entire family, this can only be done by the creator
+def delete_family(
+    current_user_id: int,
+    family_id: int,
+    db: DbDependancy,
+):
+    family_member = authenticate_family_member(
+        current_user_id,
+        family_id,
+        db,
+    )
+
+    if family_member.family_member_role != models.FamilyMemberRole.Creator:
+        raise HTTPException(
+            status_code=403,
+            detail="User does not have permission to delete the family."
+        )
+
+    family = _read_family(family_id, db)
+
+    # Delete all family members
+    (
+        db.query(models.FamilyMember)
+        .filter(models.FamilyMember.family_id == family_id)
+        .delete(synchronize_session=False)
+    )
+
+    # Delete the family
+    db.delete(family)
+    db.commit()
+
+    return {"message": "Family deleted successfully."}
+
 
 
 
