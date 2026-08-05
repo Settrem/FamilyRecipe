@@ -22,7 +22,6 @@ class UserRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
 class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
@@ -118,6 +117,8 @@ class FamilyRead(BaseModel):
 
     title: str
     description: str
+
+    invite_code: str
 
     model_config = {
         "from_attributes": True

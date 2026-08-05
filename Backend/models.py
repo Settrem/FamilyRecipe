@@ -3,6 +3,8 @@ from sqlalchemy.sql import func, relationship
 import enum
 from database import Base
 
+INVITE_CODE_LENGHT = 16
+
 # -------------------------
 # ENUMS
 # -------------------------
@@ -90,6 +92,8 @@ class Family(Base):
 
     title = Column(String(50))
     description = Column(Text)
+
+    invite_code = Column(String(INVITE_CODE_LENGHT), unique=True, index=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

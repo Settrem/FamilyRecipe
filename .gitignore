@@ -12,3 +12,6 @@ __pycache__/
 
 # ignore excel sheets
 *.xlsx
+
+#ignore my to do list
+to_do.txt
