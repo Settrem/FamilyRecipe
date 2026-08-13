@@ -1,16 +1,25 @@
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
+from typing import Annotated
+
 import bcrypt
 import hashlib
-from .env import SECRET_KEY, ALGORITHM ,ACCESS_TOKEN_EXPIRE_MINUTES
 
-# ANVÄND BCVRYPT ISTÄLLET FÖR PASSLIB
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 
+from database import DbDependancy
+import models
 
-#Läs mer på https://fastapi.tiangolo.com/tutorial/security/first-steps/
+from .env import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/token"
+)
 
 def normalize_password(password: str) -> bytes:
     if len(password.encode("utf-8")) > 72:
@@ -40,3 +49,48 @@ def create_access_token(data: dict):
         SECRET_KEY,
         algorithm=ALGORITHM,
     )
+
+async def get_current_user(
+    token: Annotated[
+        str,
+        Depends(oauth2_scheme),
+    ],
+    db: DbDependancy,
+):
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+        )
+
+        email = payload.get("sub")
+
+        if email is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token",
+            )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token",
+        )
+
+    user = (
+        db.query(models.User)
+        .filter(
+            models.User.email == email
+        )
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found",
+        )
+
+    return user
+
