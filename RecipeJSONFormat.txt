@@ -1,0 +1,42 @@
+# The JSON Format for Recipe creation
+
+{
+    "title": "Spaghetti Carbonara",
+    "description": "A classic Italian pasta dish with eggs, cheese and pancetta.",
+    "cooking_time": 25,
+    "portion_amount": 4,
+    "ingredients": [
+        {
+        "name": "Spaghetti",
+        "amount": 400,
+        "unit": "g"
+        },
+        {
+        "name": "Eggs",
+        "amount": 3,
+        "unit": "pcs"
+        },
+
+        ......
+
+
+        {
+        "name": "Pancetta",
+        "amount": 150,
+        "unit": "g"
+        }
+    ],
+    "recipe_instructions": [
+        {
+        "step_number": 1,
+        "instruction": "Boil the spaghetti according to the package instructions."
+        },
+
+            ....
+
+        {
+        "step_number": n,
+        "instruction": "Mix the eggs and Parmesan cheese in a bowl."
+        },
+    ]
+}
