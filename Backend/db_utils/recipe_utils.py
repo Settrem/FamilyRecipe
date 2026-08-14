@@ -26,17 +26,17 @@ def get_recipes_of_user(
 
     return recipes
 
-def authenticate_recipe_ownership(
-    current_user_id: int,
+# Returns a single recipe only if the given user owns it.
+def get_recipe_of_user(
     recipe_id: int,
+    user_id: int,
     db: DbDependancy,
 ):
-    # Check recipe ownership
     recipe = (
         db.query(models.Recipe)
         .filter(
             models.Recipe.id == recipe_id,
-            models.Recipe.author_id == current_user_id,
+            models.Recipe.author_id == user_id,
         )
         .first()
     )
@@ -44,8 +44,8 @@ def authenticate_recipe_ownership(
     if recipe is None:
         raise HTTPException(
             status_code=404,
-            detail="Recipe not found or you do not own this recipe."
-        )    
+            detail="Recipe not found, or user not owner of recipe."
+        )
 
     return recipe
 
@@ -66,28 +66,10 @@ def preview_recipes_of_user(
             title=recipe.title,
             cooking_time=recipe.cooking_time,
             step_count=len(recipe.recipe_instructions or []),
-            ingridients=len(recipe.ingredients or []),
+            ingredient_count=len(recipe.ingredients or []),
         )
         for recipe in recipes
     ]
-
-#This function returns the recipe of the given id
-def get_recipe_by_id(
-        recipe_id: int,
-        db: DbDependancy,
-):
-    recipe = (
-        db.query(models.Recipe)
-        .filter(models.Recipe.id == recipe_id)
-        .first()
-    )
-
-    if recipe is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Recipe not found."
-        )
-    return recipe
 
 # This function is used to add a new recipe to the database
 # The parameters are the user id of the recipe creator, the recipe, and the status os the recipe which fillows the RecipeStatus type
@@ -124,20 +106,11 @@ def update_recipe(
     db: DbDependancy,
 ):
     #Query for the recipe
-    recipe = (
-        db.query(models.Recipe)
-        .filter(
-            models.Recipe.id == recipe_id,
-            models.Recipe.author_id == user_id,
-        )
-        .first()
+    recipe = get_recipe_of_user(
+        recipe_id=recipe_id,
+        user_id=user_id,
+        db=db,
     )
-
-    if recipe is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Recipe not found."
-        )
 
     # Get only fields that were provided using exclude_unset=true
     update_data = recipe_update.model_dump(exclude_unset=True)
@@ -169,20 +142,11 @@ def delete_recipe(
     db: DbDependancy, 
 ):
     #Query for the recipe
-    recipe = (
-        db.query(models.Recipe)
-        .filter(
-            models.Recipe.id == recipe_id,
-            models.Recipe.author_id == user_id,
-        )
-        .first()
+    recipe = get_recipe_of_user(
+        recipe_id=recipe_id,
+        user_id=user_id,
+        db=db,
     )
-
-    if recipe is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Recipe not found."
-        )
 
     db.delete(recipe)
     db.commit()

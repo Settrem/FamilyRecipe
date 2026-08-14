@@ -98,6 +98,11 @@ class Family(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    members = relationship(
+        "FamilyMember",
+        back_populates="family",
+    )
+
 # -- Family Recipe-- 
 # This is the schema for when a user wants to allow a family to see one of their specific recipes
 
@@ -142,6 +147,11 @@ class FamilyMember(Base):
 
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    family = relationship(
+        "Family",
+        back_populates="members",
+    )
 
 
 # -- Family Member-- 

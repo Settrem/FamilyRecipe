@@ -6,7 +6,7 @@ from routers import (
     authentication,
     users,
     recipes,
-    families,
+    family_crud,
 )
 
 
@@ -28,5 +28,5 @@ app.include_router(
 )
 
 app.include_router(
-    families.router
+    family_crud.router
 )

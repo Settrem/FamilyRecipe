@@ -1,16 +1,19 @@
+from fastapi import APIRouter
+from fastapi import Depends
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-
-import models
+import schemas
 import auth
+import models
+
+from database import DbDependancy
+from db_utils import user_utils
 
 
 router = APIRouter(
     prefix="/current_user",
     tags=["Users"],
 )
-
 
 @router.get("/")
 def me(

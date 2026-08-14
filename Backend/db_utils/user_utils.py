@@ -7,8 +7,8 @@ from database import DbDependancy
 import schemas
 
 def read_user(
-        user_id: int,
-        db: DbDependancy,
+    user_id: int,
+    db: DbDependancy,
 ): 
     user = (
         db.query(models.User)
@@ -25,3 +25,22 @@ def read_user(
         )
     
     return user
+
+def read_users_families(
+    user_id: int,
+    db: DbDependancy,
+) -> list[models.Family]:
+
+    families = (
+        db.query(models.Family)
+        .join(
+            models.FamilyMember,
+            models.FamilyMember.family_id == models.Family.id,
+        )
+        .filter(
+            models.FamilyMember.user_id == user_id,
+        )
+        .all()
+    )
+
+    return families

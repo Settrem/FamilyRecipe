@@ -5,7 +5,7 @@ from fastapi import HTTPException
 import models
 from database import DbDependancy
 import schemas
-from user_utils import *
+import user_utils
 from recipe_utils import authenticate_recipe_ownership
 import secrets
 import string
@@ -106,7 +106,7 @@ def create_family(
         creator=user_id,
         title=family.title,
         description=family.description,
-        invite_code=create_unique_invite_code(),
+        invite_code=create_unique_invite_code(db),
     )
 
     db.add(new_family)
@@ -132,7 +132,7 @@ def authenticate_family_member(
 ) -> models.FamilyMember:
 
     #Query for the user
-    user = read_user(user_id, db)
+    user = user_utils.read_user(user_id, db)
 
     #Query for the family
     family = _read_family(family_id, db)
@@ -153,6 +153,20 @@ def authenticate_family_member(
         )
     
     return family_member
+
+#Authenticate the user, Check they're a member of the family, Return the family.
+def read_family(
+    current_user_id: int,
+    family_id: int,
+    db: DbDependancy,
+):
+    authenticate_family_member(
+        current_user_id,
+        family_id,
+        db,
+    )
+
+    return _read_family(family_id, db)
 
 #This function checks if a user has the admin class or the classes above
 def is_family_member_admin(
@@ -267,7 +281,7 @@ def add_member_to_family(
     #Query for the family and user to make sure they exist
     family = _read_family(family_id, db)
 
-    user_to_add = read_user(user_to_add_id, db)
+    user_to_add = user_utils.read_user(user_to_add_id, db)
 
     #Query if user already is in the family
     user_in_family = (
@@ -427,7 +441,7 @@ def read_family_join_requests(
     users = []
 
     for request in join_requests:
-        user = read_user(
+        user = user_utils.read_user(
             request.user_id,
             db,
         )
@@ -446,7 +460,7 @@ def deny_join_request(
 ):
     request = _read_join_request(request_id, db)
     is_family_member_admin(current_user_id, request.family_id, db)
-    _remove_join_request(request_id)
+    _remove_join_request(request_id, db)
 
     return {"message": "Join Request Removed Sucessfully."}
 
@@ -463,7 +477,7 @@ def remove_own_join_request(
             detail="Cannot remove others join requests."
         )
 
-    _remove_join_request(request_id)
+    _remove_join_request(request_id, db)
     return {"message": "Join Request Removed Sucessfully."}
     
 
@@ -853,7 +867,6 @@ def preview_family_recipes(
         )
         for recipe in recipes
     ]
-
 
 def preview_family_member_recipes(
     current_user_id: int,

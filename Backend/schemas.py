@@ -22,6 +22,15 @@ class UserRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class RecipeAuthor(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+
+    model_config = {
+        "from_attributes": True
+    }
+
 class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
@@ -64,7 +73,7 @@ class RecipeUpdate(BaseModel):
 class RecipeRead(BaseModel):
     id: int
     author_id: int
-    author_name: str
+    author: RecipeAuthor
 
     title: str
     description: str
@@ -85,7 +94,7 @@ class RecipePreview(BaseModel):
     title: str
     cooking_time: int
     step_count: int
-    ingridients: int
+    ingredient_count: int
 
 class RecipePreviewInFamily(BaseModel):
     id: int
