@@ -14,7 +14,7 @@ import string
 # invite code generations
 ####
 
-def generate_invite_code(length: int = models.INVITE_CODE_LENGHT) -> str:
+def generate_invite_code(length: int = models.INVITE_CODE_LENGTH) -> str:
     #we avoid similar looking characters
     characters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
 
@@ -98,12 +98,12 @@ def _read_family_member(
 
 #This function creates a family with the creator as the first member and role creator
 def create_family(
-    user_id: int,
+    current_user_id: int,
     family: schemas.FamilyCreate,
     db: DbDependancy,
 ):
     new_family = models.Family(
-        creator=user_id,
+        creator=current_user_id,
         title=family.title,
         description=family.description,
         invite_code=create_unique_invite_code(db),
@@ -114,7 +114,7 @@ def create_family(
 
     family_member = models.FamilyMember(
         family_id=new_family.id,
-        user_id=user_id,
+        user_id=current_user_id,
         family_member_role=models.FamilyMemberRole.Creator,
     )
 
@@ -126,13 +126,13 @@ def create_family(
 
 #Checks if a user is a member of a family
 def authenticate_family_member(
-    user_id: int,
+    current_user_id: int,
     family_id: int, 
     db: DbDependancy,
 ) -> models.FamilyMember:
 
     #Query for the user
-    user = user_utils.read_user(user_id, db)
+    user = user_utils.read_user(current_user_id, db)
 
     #Query for the family
     family = _read_family(family_id, db)
@@ -142,7 +142,7 @@ def authenticate_family_member(
         db.query(models.FamilyMember)
         .filter(
             models.FamilyMember.family_id == family_id,
-            models.FamilyMember.user_id == user_id,
+            models.FamilyMember.user_id == current_user_id,
         ).first()
     )
 
@@ -156,17 +156,60 @@ def authenticate_family_member(
 
 #Authenticate the user, Check they're a member of the family, Return the family.
 def read_family(
-    current_user_id: int,
+    user_id: int,
     family_id: int,
     db: DbDependancy,
 ):
     authenticate_family_member(
-        current_user_id,
+        user_id,
         family_id,
         db,
     )
 
-    return _read_family(family_id, db)
+    family = _read_family(family_id, db)
+
+    members = []
+
+    for member in family.members:
+        user = user_utils.read_user(member.user_id, db)
+
+        members.append(
+            schemas.FamilyMemberRead(
+                user_id=member.user_id,
+                family_member_role=member.family_member_role,
+                first_name=user.first_name,
+                last_name=user.last_name,
+            )
+        )
+
+    recipes = []
+
+    for family_recipe in family.family_recipes:
+        recipe = family_recipe.recipe
+
+        recipes.append(
+            schemas.RecipePreviewInFamily(
+                id=recipe.id,
+                title=recipe.title,
+                cooking_time=recipe.cooking_time,
+                step_count=len(recipe.recipe_instructions),
+                ingredient_count=len(recipe.ingredients),
+                recipe_creator=(
+                    f"{recipe.author.first_name} "
+                    f"{recipe.author.last_name}"
+                ),
+            )
+        )
+
+    return schemas.FamilyRead(
+        id=family.id,
+        creator=family.creator,
+        title=family.title,
+        description=family.description,
+        invite_code=family.invite_code,
+        members=members,
+        recipes=recipes,
+    )
 
 #This function checks if a user has the admin class or the classes above
 def is_family_member_admin(
@@ -308,179 +351,6 @@ def add_member_to_family(
     db.add(new_family_member)
     db.commit()
 
-####
-# Join Requests
-####
-
-def _read_join_request(
-    request_id: int,
-    db: DbDependancy
-):
-    request = (
-        db.query(models.RequestToJoinFamily)
-        .filter(
-            models.RequestToJoinFamily.id == request_id,
-        )
-        .first()
-    )
-
-    if request is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Request to join family not found."
-        )
-
-    return request
-
-def _remove_join_request(
-    request_id: int,
-    db: DbDependancy,
-):
-    existing_request = (
-        db.query(models.RequestToJoinFamily)
-        .filter(
-            models.RequestToJoinFamily.id == request_id,
-        )
-        .first()
-    )
-
-    if existing_request is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Request to join family not found."
-        )
-
-    db.delete(existing_request)
-    db.commit()
-
-    return {"message": "Join Request Removed Sucessfully."}
-
-
-def request_to_join_family(
-    current_user_id: int,
-    invite_code: str,
-    db: DbDependancy,
-):
-    family = (
-        db.query(models.Family)
-        .filter(
-            models.Family.invite_code == invite_code
-        )
-        .first()
-    )
-
-    if family is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Invalid invite code."
-        )
-
-    existing_member = (
-        db.query(models.FamilyMember)
-        .filter(
-            models.FamilyMember.family_id == family.id,
-            models.FamilyMember.user_id == current_user_id,
-        )
-        .first()
-    )
-
-    if existing_member:
-        raise HTTPException(
-            status_code=409,
-            detail="You are already a member of this family."
-        )
-
-    existing_request = (
-        db.query(models.RequestToJoinFamily)
-        .filter(
-            models.RequestToJoinFamily.family_id == family.id,
-            models.RequestToJoinFamily.user_id == current_user_id,
-        )
-        .first()
-    )
-
-    if existing_request:
-        raise HTTPException(
-            status_code=409,
-            detail="You already have requested to join this family."
-        )
-
-    join_request = models.RequestToJoinFamily(
-        user_id=current_user_id,
-        family_id=family.id,
-        requested_by=current_user_id,
-    )
-
-    db.add(join_request)
-    db.commit()
-    db.refresh(join_request)
-
-    return join_request
-
-
-def read_family_join_requests(
-    current_user_id: int,
-    family_id: int,
-    db: DbDependancy,
-) -> list[schemas.UserRead]:
-
-    current_user = authenticate_family_member(
-        current_user_id,
-        family_id,
-        db,
-    )
-
-    join_requests = (
-        db.query(models.RequestToJoinFamily)
-        .filter(
-            models.RequestToJoinFamily.family_id == family_id,
-        )
-        .all()
-    )
-
-    users = []
-
-    for request in join_requests:
-        user = user_utils.read_user(
-            request.user_id,
-            db,
-        )
-
-        users.append(
-            schemas.UserRead.model_validate(user)
-        )
-
-    return users
-
-
-def deny_join_request(
-    current_user_id: int,
-    request_id: int,
-    db: DbDependancy
-):
-    request = _read_join_request(request_id, db)
-    is_family_member_admin(current_user_id, request.family_id, db)
-    _remove_join_request(request_id, db)
-
-    return {"message": "Join Request Removed Sucessfully."}
-
-def remove_own_join_request(
-    current_user_id: int,
-    request_id: int,
-    db: DbDependancy,     
-):
-    request = _read_join_request(request_id, db)
-    
-    if request.user_id != current_user_id:
-        raise HTTPException(
-            status_code=405,
-            detail="Cannot remove others join requests."
-        )
-
-    _remove_join_request(request_id, db)
-    return {"message": "Join Request Removed Sucessfully."}
-    
-
 
 # This function lets us change the role of members in the family
 # (cannot be given the role of Creator or Removed)
@@ -498,6 +368,12 @@ def change_family_member_role(
 
     #Read family member
     family_member = _read_family_member(family_member_id, db)
+
+    if family_member.family_member_role == models.FamilyMemberRole.Creator:
+        raise HTTPException(
+            status_code=403,
+            detail="The Creator's role cannot be changed."
+        )
 
     # Verify that the current user belongs to the same family
     current_user = is_family_member_admin(
@@ -634,274 +510,3 @@ def update_family(
     db.refresh(family)
 
     return family
-
-
-####
-# Family Recipe Utils
-####
-
-# Check if recipe is shared in family
-def _is_recipe_shared(
-    family_id: int,
-    recipe_id: int,
-    db: DbDependancy,
-) -> bool:
-    existing = (
-        db.query(models.FamilyRecipe)
-        .filter(
-            models.FamilyRecipe.family_id == family_id,
-            models.FamilyRecipe.recipe_id == recipe_id,
-        )
-        .first()
-    )
-
-    if existing:
-        return True
-
-    return False
-
-def add_recipe_to_family(
-    current_user_id: int,
-    family_id: int,
-    recipe_id: int,
-    db: DbDependancy,
-):
-
-    # Check user belongs to family and can edit family
-    deny_viewer_to_edit(
-        current_user_id,
-        family_id,
-        db,
-    )
-
-    # Check recipe ownership
-    recipe = authenticate_recipe_ownership(current_user_id, recipe_id, db)
-
-    # Check if already shared
-    existing = _is_recipe_shared(family_id, recipe_id, db)
-
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="Recipe is already shared with this family."
-        )
-
-    family_recipe = models.FamilyRecipe(
-        family_id=family_id,
-        recipe_id=recipe_id,
-    )
-
-    db.add(family_recipe)
-    db.commit()
-    db.refresh(family_recipe)
-
-    return family_recipe
-
-# Here you can get all recipes shared with a family
-def read_family_recipes(
-    current_user_id: int,
-    family_id: int,
-    db: DbDependancy,
-):
-
-    authenticate_family_member(
-        current_user_id,
-        family_id,
-        db,
-    )
-
-    recipes = (
-        db.query(models.Recipe)
-        .join(
-            models.FamilyRecipe,
-            models.Recipe.id == models.FamilyRecipe.recipe_id
-        )
-        .filter(
-            models.FamilyRecipe.family_id == family_id
-        )
-        .all()
-    )
-
-    return recipes
-
-#Here you can get all recipes shared by a specific family member
-def read_family_member_recipes(
-    current_user_id: int,
-    family_id: int,
-    family_member_id: int,
-    db: DbDependancy,
-):
-
-    family_member = read_family_member(current_user_id, family_member_id, db)
-
-    recipes = (
-        db.query(models.Recipe)
-        .join(
-            models.FamilyRecipe,
-            models.Recipe.id == models.FamilyRecipe.recipe_id
-        )
-        .filter(
-            models.FamilyRecipe.family_id == family_id,
-            models.Recipe.author_id == family_member.user_id,
-        )
-        .all()
-    )
-
-    return recipes
-
-
-def remove_recipe_from_family(
-    current_user_id: int,
-    family_id: int,
-    recipe_id: int,
-    db: DbDependancy,
-):
-
-    deny_viewer_to_edit(
-        current_user_id,
-        family_id,
-        db,
-    )
-
-    family_recipe = (
-        db.query(models.FamilyRecipe)
-        .join(
-            models.Recipe,
-            models.Recipe.id == models.FamilyRecipe.recipe_id
-        )
-        .filter(
-            models.FamilyRecipe.family_id == family_id,
-            models.FamilyRecipe.recipe_id == recipe_id,
-            models.Recipe.author_id == current_user_id,
-        )
-        .first()
-    )
-
-    if family_recipe is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Recipe not found or you are not the owner."
-        )
-
-    db.delete(family_recipe)
-    db.commit()
-
-    return {
-        "message": "Recipe removed from family."
-    }
-
-def remove_member_recipe_from_family(
-    current_user_id: int,
-    family_id: int,
-    recipe_id: int,
-    db: DbDependancy,
-):
-
-    family_member = is_family_member_admin(
-        current_user_id,
-        family_id,
-        db,
-    )
-
-    family_recipe = (
-        db.query(models.FamilyRecipe)
-        .filter(
-            models.FamilyRecipe.family_id == family_id,
-            models.FamilyRecipe.recipe_id == recipe_id,
-        )
-        .first()
-    )
-
-    if family_recipe is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Recipe is not shared with this family."
-        )
-
-
-    db.delete(family_recipe)
-    db.commit()
-
-    return {
-        "message": "Recipe removed from family."
-    }
-
-
-def preview_family_recipes(
-    current_user_id: int,
-    family_id: int,
-    db: DbDependancy,
-) -> list[schemas.RecipePreviewInFamily]:
-
-    # Check user belongs to family
-    authenticate_family_member(
-        current_user_id,
-        family_id,
-        db,
-    )
-
-    recipes = (
-        db.query(models.Recipe)
-        .join(
-            models.FamilyRecipe,
-            models.Recipe.id == models.FamilyRecipe.recipe_id
-        )
-        .join(
-            models.User,
-            models.Recipe.author_id == models.User.id
-        )
-        .filter(
-            models.FamilyRecipe.family_id == family_id
-        )
-        .all()
-    )
-
-    return [
-        schemas.RecipePreviewInFamily(
-            id=recipe.id,
-            title=recipe.title,
-            cooking_time=recipe.cooking_time,
-            step_count=len(recipe.recipe_instructions or []),
-            ingredient_count=len(recipe.ingredients or []),
-            recipe_creator=f"{recipe.author.first_name} {recipe.author.last_name}"
-        )
-        for recipe in recipes
-    ]
-
-def preview_family_member_recipes(
-    current_user_id: int,
-    family_id: int,
-    family_member_id: int,
-    db: DbDependancy,
-) -> list[schemas.RecipePreviewInFamily]:
-
-    family_member = read_family_member(current_user_id, family_member_id, db)
-
-    recipes = (
-        db.query(models.Recipe)
-        .join(
-            models.FamilyRecipe,
-            models.Recipe.id == models.FamilyRecipe.recipe_id
-        )
-        .join(
-            models.User,
-            models.Recipe.author_id == models.User.id
-        )
-        .filter(
-            models.FamilyRecipe.family_id == family_id,
-            models.Recipe.author_id == family_member.user_id,
-        )
-        .all()
-    )
-
-    return [
-        schemas.RecipePreviewInFamily(
-            id=recipe.id,
-            title=recipe.title,
-            cooking_time=recipe.cooking_time,
-            step_count=len(recipe.recipe_instructions or []),
-            ingredient_count=len(recipe.ingredients or []),
-            recipe_creator=f"{recipe.author.first_name} {recipe.author.last_name}"
-        )
-        for recipe in recipes
-    ]

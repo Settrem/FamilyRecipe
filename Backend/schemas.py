@@ -123,15 +123,13 @@ class FamilyUpdate(BaseModel):
 class FamilyRead(BaseModel):
     id: int
     creator: int
-
     title: str
     description: str
-
     invite_code: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    members: list[FamilyMemberRead]
+    recipes: list[RecipePreviewInFamily]
+
 
 class FamilyMemberJoinRequest(BaseModel):
     family_id: int
@@ -146,8 +144,9 @@ class FamilyMemberUpdate(BaseModel):
 
 class FamilyMemberRead(BaseModel):
     user_id: int
-    family_id: int
     family_member_role: FamilyMemberRole
+    first_name: str
+    last_name: str
 
     model_config = {
         "from_attributes": True

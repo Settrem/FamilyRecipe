@@ -3,7 +3,7 @@ from sqlalchemy.sql import func, relationship
 import enum
 from database import Base
 
-INVITE_CODE_LENGHT = 16
+INVITE_CODE_LENGTH = 16
 
 # -------------------------
 # ENUMS
@@ -89,18 +89,22 @@ class Family(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     creator = Column(Integer, ForeignKey("user.id"), nullable=False)
-
     title = Column(String(50))
     description = Column(Text)
-
-    invite_code = Column(String(INVITE_CODE_LENGHT), unique=True, index=True)
-
+    invite_code = Column(String(INVITE_CODE_LENGTH), unique=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     members = relationship(
         "FamilyMember",
         back_populates="family",
+        cascade="all, delete-orphan",
+    )
+
+    family_recipes = relationship(
+        "FamilyRecipe",
+        back_populates="family",
+        cascade="all, delete-orphan",
     )
 
 # -- Family Recipe-- 
@@ -118,12 +122,28 @@ class FamilyRecipe(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-
-    family_id = Column(Integer, ForeignKey("family.id", ondelete="CASCADE"), nullable=False)
-    recipe_id = Column(Integer, ForeignKey("recipe.id", ondelete="CASCADE"), nullable=False)
+    family_id = Column(
+        Integer,
+        ForeignKey("family.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    recipe_id = Column(
+        Integer,
+        ForeignKey("recipe.id", ondelete="CASCADE"),
+        nullable=False
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    family = relationship(
+        "Family",
+        back_populates="family_recipes",
+    )
+
+    recipe = relationship(
+        "Recipe",
+    )
 
 # -- Family Member-- 
 # This is the schema for telling which families users are in and their status/Role in that family
