@@ -1,6 +1,7 @@
 
 from family_crud_utils import *
 from recipe_utils import authenticate_recipe_ownership
+from user_utils import read_user
 
 def _read_join_request(
     request_id: int,
@@ -109,6 +110,37 @@ def request_to_join_family(
     db.refresh(join_request)
 
     return join_request
+
+def read_own_join_requests(
+    current_user_id: int,
+    db: DbDependancy
+) -> list[schemas.FamilyRead]:
+
+    current_user = read_user(current_user_id, db)
+
+    join_requests = (
+        db.query(models.RequestToJoinFamily)
+        .filter(
+            models.RequestToJoinFamily.requested_by == current_user.id,
+        )
+        .all()
+    )
+
+    requested_families = []
+
+    for request in join_requests:
+        family = preview_family_by_id(request.family_id, db)
+
+        requested_families.append(
+            {
+                "family_title": family.family_title,
+                "family_id": family.family_id,
+                "requested_at": request.requested_at, 
+            }
+        )
+
+    return requested_families    
+
 
 def read_family_join_requests(
     current_user_id: int,

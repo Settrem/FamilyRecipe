@@ -74,6 +74,26 @@ def get_family(
         db=db,
     )
 
+# GET /current_user/family/{family_id}/member
+# Gets all members that belong to the specified family.
+@router.get(
+    "/family/{family_id}/member",
+    response_model=list[schemas.FamilyMemberRead],
+)
+def get_family_members(
+    family_id: int,
+    current_user: Annotated[
+        models.User,
+        Depends(auth.get_current_user),
+    ],
+    db: DbDependancy,
+):
+    return family_crud_utils.read_all_family_members(
+        current_user_id=current_user.id,
+        family_id=family_id,
+        db=db,
+    )
+
 
 # Updates the information of a family
 # The user must have the required permissions to edit the family
@@ -114,3 +134,5 @@ def delete_family(
         family_id=family_id,
         db=db,
     )
+
+

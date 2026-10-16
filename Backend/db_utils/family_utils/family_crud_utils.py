@@ -154,6 +154,21 @@ def authenticate_family_member(
     
     return family_member
 
+
+#Let a user not a part of the family preview the family by a join request
+def preview_family_by_id(
+    family_id: int,
+    db: DbDependancy,
+):
+    family = _read_family(family_id, db)
+
+    family_preview= { 
+        "family_name": family.title,
+        "family_id": family.id,
+    }
+
+    return family_preview
+
 #Authenticate the user, Check they're a member of the family, Return the family.
 def read_family(
     user_id: int,
@@ -278,6 +293,7 @@ def read_family_member(
     
     return family_member
 
+#This function lets us read all the family members
 def read_all_family_members(
     current_user_id: int,
     family_id: int,
