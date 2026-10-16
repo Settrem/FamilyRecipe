@@ -11,7 +11,7 @@ from db_utils import recipe_utils
 
 
 router = APIRouter(
-    prefix="/current_user/",
+    prefix="/current_user",
     tags=["Recipes"]
 )
 
@@ -26,7 +26,7 @@ def create_recipe(
         models.User,
         Depends(auth.get_current_user),
     ],
-    db: DbDependancy = Depends(),   
+    db: DbDependancy,   
 ):
     return recipe_utils.create_recipe(
         user_id=current_user.id,

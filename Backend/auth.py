@@ -1,17 +1,17 @@
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import Annotated
-
+from jose import JWTError, jwt
 import bcrypt
 import hashlib
 
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from typing import Annotated
 
-from database import DbDependancy
 import models
+from database import DbDependancy
 
-from .env import (
+from env import (
     SECRET_KEY,
     ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -49,6 +49,7 @@ def create_access_token(data: dict):
         SECRET_KEY,
         algorithm=ALGORITHM,
     )
+
 
 async def get_current_user(
     token: Annotated[

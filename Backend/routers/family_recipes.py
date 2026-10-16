@@ -7,10 +7,10 @@ import auth
 import models
 
 from database import DbDependancy
-from db_utils import family_recipe_utils
+from db_utils.family_utils.family_recipe_utils import *
 
 router = APIRouter(
-    prefix="/current_user/",
+    prefix="/current_user",
     tags=["Family Recipes"]
 )
 

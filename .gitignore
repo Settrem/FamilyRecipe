@@ -13,5 +13,11 @@ __pycache__/
 # ignore excel sheets
 *.xlsx
 
-#ignore my to do list
+#ignore my info lists
 to_do.txt
+how_to_use_venv.txt
+how_to_add_DB.txt
+run_the_backend.txt
+
+#ignore virtual enviorment
+.venv

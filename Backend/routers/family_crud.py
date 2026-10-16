@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from typing import Annotated
 
-from Backend.db_utils.family_utils import family_crud_utils
+from db_utils.family_utils import family_crud_utils
 import schemas
 import auth
 import models
@@ -12,7 +12,7 @@ from db_utils import user_utils
 
 
 router = APIRouter(
-    prefix="/current_user/",
+    prefix="/current_user",
     tags=["Family"]
 )
 
@@ -28,7 +28,7 @@ def create_family(
         models.User,
         Depends(auth.get_current_user),
     ],
-    db: DbDependancy = Depends(),
+    db: DbDependancy,
 ):
     return family_crud_utils.create_family(
         current_user_id=current_user.id,

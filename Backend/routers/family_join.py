@@ -7,11 +7,11 @@ import auth
 import models
 
 from database import DbDependancy
-from db_utils import family_request_utils
+from db_utils.family_utils import family_join_utils as family_request_utils
 
 
 router = APIRouter(
-    prefix="/current_user/",
+    prefix="/current_user",
     tags=["Family Join Requests"]
 )
 

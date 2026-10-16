@@ -5,8 +5,8 @@ from fastapi import HTTPException
 import models
 from database import DbDependancy
 import schemas
-import user_utils
-from recipe_utils import authenticate_recipe_ownership
+import db_utils.user_utils as user_utils
+from db_utils.recipe_utils import get_recipe_of_user as authenticate_recipe_ownership
 import secrets
 import string
 

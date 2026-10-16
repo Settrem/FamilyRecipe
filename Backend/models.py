@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Enum, JSON, UniqueConstraint
-from sqlalchemy.sql import func, relationship
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 import enum
 from database import Base
 

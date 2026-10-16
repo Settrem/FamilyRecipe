@@ -1,7 +1,7 @@
 
-from family_crud_utils import *
-from recipe_utils import authenticate_recipe_ownership
-from user_utils import read_user
+from db_utils.family_utils.family_crud_utils import *
+from db_utils.recipe_utils import get_recipe_of_user as authenticate_recipe_ownership
+from db_utils.user_utils import read_user
 
 def _read_join_request(
     request_id: int,

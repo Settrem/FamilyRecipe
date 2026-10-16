@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-from .env import URL_DATABASE
+from env import URL_DATABASE
 
 engine = create_engine(URL_DATABASE)
 

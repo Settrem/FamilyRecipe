@@ -1,5 +1,5 @@
 
-from family_crud_utils import *
+from db_utils.family_utils.family_crud_utils import *
 
 # Check if recipe is shared in family
 def _is_recipe_shared(
