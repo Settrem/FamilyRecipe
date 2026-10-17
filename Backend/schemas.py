@@ -130,6 +130,9 @@ class FamilyRead(BaseModel):
     members: list[FamilyMemberRead]
     recipes: list[RecipePreviewInFamily]
 
+class FamilyPreview(BaseModel):
+    id: int
+    title: str
 
 class FamilyMemberJoinRequest(BaseModel):
     family_id: int

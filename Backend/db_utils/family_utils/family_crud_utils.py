@@ -71,6 +71,26 @@ def _read_family(
 
     return family
 
+# This function returns a family model into a correct response
+def family_to_response(family: models.Family):
+    return {
+        "id": family.id,
+        "creator": family.creator,
+        "title": family.title,
+        "description": family.description,
+        "invite_code": family.invite_code,
+        "members": [
+            {
+                "user_id": member.user_id,
+                "family_member_role": member.family_member_role,
+                "first_name": member.user.first_name,
+                "last_name": member.user.last_name,
+            }
+            for member in family.members
+        ],
+        "recipes": [],
+    }
+
 def _read_family_member(
     family_member_id: int,
     db: DbDependancy,
@@ -122,7 +142,7 @@ def create_family(
     db.commit()
     db.refresh(new_family)
 
-    return new_family
+    return family_to_response(new_family)
 
 #Checks if a user is a member of a family
 def authenticate_family_member(
@@ -293,7 +313,7 @@ def read_family_member(
     
     return family_member
 
-#This function lets us read all the family members
+# This function lets us read all the family members
 def read_all_family_members(
     current_user_id: int,
     family_id: int,
@@ -307,14 +327,26 @@ def read_all_family_members(
         db,
     )
 
-    # Query all family members
+    # Query all family members and their users
     family_members = (
-        db.query(models.FamilyMember)
+        db.query(models.FamilyMember, models.User)
+        .join(
+            models.User,
+            models.FamilyMember.user_id == models.User.id,
+        )
         .filter(models.FamilyMember.family_id == family_id)
         .all()
     )
 
-    return family_members
+    return [
+        schemas.FamilyMemberRead(
+            user_id=member.user_id,
+            family_member_role=member.family_member_role,
+            first_name=user.first_name,
+            last_name=user.last_name,
+        )
+        for member, user in family_members
+    ]
 
 #This function lets us add new members to the family (cannot be given role of creator)
 def add_member_to_family(

@@ -40,7 +40,7 @@ def create_family(
 # Returns all families that the current user is a member of
 @router.get(
     "/families",
-    response_model=list[schemas.FamilyRead],
+    response_model=list[schemas.FamilyPreview],
 )
 def get_families(
     current_user: Annotated[
@@ -77,7 +77,7 @@ def get_family(
 # GET /current_user/family/{family_id}/member
 # Gets all members that belong to the specified family.
 @router.get(
-    "/family/{family_id}/member",
+    "/family/{family_id}/members",
     response_model=list[schemas.FamilyMemberRead],
 )
 def get_family_members(
@@ -130,7 +130,7 @@ def delete_family(
     db: DbDependancy,
 ):
     return family_crud_utils.delete_family(
-        user_id=current_user.id,
+        current_user_id=current_user.id,
         family_id=family_id,
         db=db,
     )

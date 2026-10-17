@@ -31,7 +31,7 @@ def create_recipe(
     return recipe_utils.create_recipe(
         user_id=current_user.id,
         recipe=recipe,
-        recipe_status=models.RecipeStatus.Not_Finished,
+        recipe_status=models.RecipeStatus.Released,
         db=db,
     )
 

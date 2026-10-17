@@ -174,6 +174,8 @@ class FamilyMember(Base):
         back_populates="members",
     )
 
+    user = relationship("User")
+
 
 # -- Family Member-- 
 # This is the schema for allowing which famelies can see your recipies and not

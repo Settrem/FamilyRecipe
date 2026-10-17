@@ -7,7 +7,7 @@ import auth
 import models
 
 from database import DbDependancy
-from db_utils.family_utils.family_recipe_utils import *
+import db_utils.family_utils.family_recipe_utils as family_recipe_utils
 
 router = APIRouter(
     prefix="/current_user",

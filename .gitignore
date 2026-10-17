@@ -18,6 +18,7 @@ to_do.txt
 how_to_use_venv.txt
 how_to_add_DB.txt
 run_the_backend.txt
+checkingEndpoints.txt
 
 #ignore virtual enviorment
 .venv
